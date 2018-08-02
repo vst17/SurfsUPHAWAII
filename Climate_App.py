@@ -109,47 +109,31 @@ def tobs():
     
     return jsonify(temp_data)
     
-@app.route("/api/v1.0/temp/<start>")
-def start_stats(start=None):
-    """Return a json list of the minimum temperature, the average temperature, and the
-    max temperature for a given start date"""
+@app.route("/api/v1.0/<start_date>")
+def start_stats(start_date):
+    #Return a json list of the minimum temperature, the average temperature, and the
+    #max temperature for a given start date
     # Query all the stations and for the given date. 
-    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
-    filter(Measurement.date >= start).all()
+    minimum = session.query(Measurement.tobs, func.min(Measurement.tobs)).filter(Measurement.date >= start_date)
+    maximum = session.query(Measurement.tobs, func.max(Measurement.tobs)).filter(Measurement.date >= start_date)
+    average = session.query(Measurement.tobs, func.avg(Measurement.tobs)).filter(Measurement.date >= start_date)
 
-    # Create a dictionary from the row data and append to a list of for the temperature data.
-    temp_stats = []
+    start_temp = {"Tmin": minimum[0][0], "Tmax": maximum[0][0], "Tavg": average[0][0]}
     
-    for Tmin, Tmax, Tavg in results:
-        temp_stats_dict = {}
-        temp_stats_dict["Minimum Temp"] = Tmin
-        temp_stats_dict["Maximum Temp"] = Tmax
-        temp_stats_dict["Average Temp"] = Tavg
-        temp_stats.append(temp_stats_dict)
     
-    return jsonify(temp_stats)
+    return jsonify(start_temp)
     
 
-@app.route("/api/v1.0/temp/<start>/<end>")
-def calc_stats(start=None, end=None):
-    """Return a json list of the minimum temperature, the average temperature, 
-    and the max temperature for a given start-end date range."""
-    
-    # Query all the stations and for the given range of dates. 
-    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
-    filter(Measurement.date >= start).filter(Measurement.date <= end).all()
+@app.route("/api/v1.0/<start_date>&<end_date>")
+def start(start_date, end_date):
+    #When given the start only, calculate TMIN, TAVG, and TMAX for all dates greater than and equal to the start date."
+    minimum = session.query(Measurement.tobs, func.min(Measurement.tobs)).filter(Measurement.date.between(start_date, end_date))
+    maximum = session.query(Measurement.tobs, func.max(Measurement.tobs)).filter(Measurement.date.between(start_date, end_date))
+    average = session.query(Measurement.tobs, func.avg(Measurement.tobs)).filter(Measurement.date.between(start_date, end_date))
 
-    # Create a dictionary from the row data and append to a list of for the temperature data.
-    begin_end_stats = []
+    start_end_temps = {"Tmin": minimum[0][0], "Tmax": maximum[0][0], "Tavg": average[0][0]}
     
-    for Tmin, Tmax, Tavg in results:
-        begin_end_stats_dict = {}
-        begin_end_stats_dict["Minimum Temp"] = Tmin
-        begin_end_stats_dict["Maximum Temp"] = Tmax
-        begin_end_stats_dict["Average Temp"] = Tavg
-        begin_end_stats.append(begin_end_stats_dict)
-    
-    return jsonify(begin_end_stats)
+    return jsonify(start_end_temps)
 
 if __name__ == '__main__':
     app.run(debug=True)
